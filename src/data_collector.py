@@ -52,108 +52,126 @@ class DataCollector:
         print("  Press 'SPACE' to start/stop recording")
         print("  Press 'q' to quit")
 
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
+        try:
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    break
 
-            frame = cv2.flip(frame, 1)
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = self.hands.process(rgb_frame)
-            
-            # UI Text
-            if input_mode:
-                status_text = f"TYPE NEW LABEL: {input_buffer}_"
-                sub_text = "Press ENTER to Finish"
-                color = (255, 255, 0) # Cyan
-            else:
-                if is_recording:
-                    status_text = f"RECORDING: {current_label}"
-                    sub_text = f"Frames: {frames_recorded} | Press SPACE to Stop"
-                    color = (0, 0, 255) # Red
+                frame = cv2.flip(frame, 1)
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                results = self.hands.process(rgb_frame)
+                
+                # UI Text
+                if input_mode:
+                    status_text = f"TYPE NEW LABEL: {input_buffer}_"
+                    sub_text = "Press ENTER to Finish"
+                    color = (255, 255, 0) # Cyan
                 else:
-                    status_text = f"Current Label: {current_label}"
-                    sub_text = "Press SPACE to Record | Press ENTER to Change Label"
-                    color = (0, 255, 0) # Green
-            
-            # Draw main status
-            cv2.putText(frame, status_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-            # Draw instructions below
-            cv2.putText(frame, sub_text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
-
-            # Data containers
-            left_hand_data = np.zeros(63) # 21 * 3
-            right_hand_data = np.zeros(63)
-            hands_detected = False
-
-            if results.multi_hand_landmarks and results.multi_handedness:
-                hands_detected = True
-                for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
-                    self.mp_draw.draw_landmarks(frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
-                    
-                    # Get hand label (Left or Right)
-                    hand_label = handedness.classification[0].label.lower()
-                    
-                    # Extract landmarks
-                    landmarks = []
-                    for lm in hand_landmarks.landmark:
-                        landmarks.extend([lm.x, lm.y, lm.z])
-                    
-                    if hand_label == 'left':
-                        left_hand_data = np.array(landmarks)
+                    if is_recording:
+                        status_text = f"RECORDING: {current_label}"
+                        sub_text = f"Frames: {frames_recorded} | Press SPACE to Stop"
+                        color = (0, 0, 255) # Red
                     else:
-                        right_hand_data = np.array(landmarks)
+                        status_text = f"Current Label: {current_label}"
+                        sub_text = "Press SPACE to Record | Press ENTER to Change Label"
+                        color = (0, 255, 0) # Green
+                
+                # Draw main status
+                cv2.putText(frame, status_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+                # Draw instructions below
+                cv2.putText(frame, sub_text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
 
-                if is_recording and not input_mode and current_label != "Waiting...":
-                    # Combine data
-                    full_row = [current_label]
-                    full_row.extend(left_hand_data)
-                    full_row.extend(right_hand_data)
-                    
-                    # Save to CSV
-                    with open(self.output_file, 'a', newline='') as f:
-                        writer = csv.writer(f)
-                        writer.writerow(full_row)
-                    
-                    frames_recorded += 1
-                    cv2.circle(frame, (30, 30), 10, (0, 0, 255), -1) # Recording indicator
+                # Data containers
+                left_hand_data = np.zeros(63) # 21 * 3
+                right_hand_data = np.zeros(63)
+                hands_detected = False
 
-            cv2.imshow('ISL Data Collector (2-Hand)', frame)
-            
-            key = cv2.waitKey(1) & 0xFF
-            
-            if input_mode:
-                if key == 13: # Enter
-                    if input_buffer.strip(): # Only accept non-empty
-                        current_label = input_buffer.strip()
+                if results.multi_hand_landmarks and results.multi_handedness:
+                    hands_detected = True
+                    for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
+                        self.mp_draw.draw_landmarks(frame, hand_landmarks, self.mp_hands.HAND_CONNECTIONS)
+                        
+                        # Get hand label (Left or Right)
+                        hand_label = handedness.classification[0].label.lower()
+                        
+                        # Extract landmarks
+                        landmarks = []
+                        for lm in hand_landmarks.landmark:
+                            landmarks.extend([lm.x, lm.y, lm.z])
+                        
+                        if hand_label == 'left':
+                            left_hand_data = np.array(landmarks)
+                        else:
+                            right_hand_data = np.array(landmarks)
+
+                    if is_recording and not input_mode and current_label != "Waiting...":
+                        # Combine data
+                        full_row = [current_label]
+                        full_row.extend(left_hand_data)
+                        full_row.extend(right_hand_data)
+                        
+                        # Save to CSV
+                        try:
+                            with open(self.output_file, 'a', newline='') as f:
+                                writer = csv.writer(f)
+                                writer.writerow(full_row)
+                            frames_recorded += 1
+                            print(f"Saved frame {frames_recorded} for label '{current_label}'")
+                            cv2.circle(frame, (30, 30), 10, (0, 0, 255), -1) # Recording indicator
+                            cv2.putText(frame, "SAVED", (50, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                        except PermissionError:
+                            print(f"ERROR: Could not write to {self.output_file}. Is it open in another program?")
+                            cv2.putText(frame, "FILE ERROR!", (50, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+                        except Exception as e:
+                            print(f"ERROR: Failed to save data: {e}")
+
+                cv2.imshow('ISL Data Collector (2-Hand)', frame)
+                
+                key = cv2.waitKey(1) & 0xFF
+                
+                if input_mode:
+                    if key == 13: # Enter
+                        if input_buffer.strip(): # Only accept non-empty
+                            current_label = input_buffer.strip()
+                            input_mode = False
+                            input_buffer = ""
+                            frames_recorded = 0 # Reset counter for new label
+                            print(f"Label set to: {current_label}")
+                    elif key == 27: # ESC to cancel
                         input_mode = False
                         input_buffer = ""
-                        frames_recorded = 0 # Reset counter for new label
-                        print(f"Label set to: {current_label}")
-                elif key == 27: # ESC to cancel
-                    input_mode = False
-                    input_buffer = ""
-                elif key == 8: # Backspace
-                    input_buffer = input_buffer[:-1]
-                elif key != 255:
-                    # Only allow printable ASCII characters
-                    if 32 <= key <= 126:
-                        input_buffer += chr(key)
-            else:
-                if key == ord('q'):
-                    break
-                elif key == 32: # Space
-                    if current_label != "Waiting...":
-                        is_recording = not is_recording
-                        if is_recording:
-                            frames_recorded = 0
-                elif key == 13: # Enter
-                    input_mode = True
-                    is_recording = False
-                    input_buffer = "" # Start fresh
+                    elif key == 8: # Backspace
+                        input_buffer = input_buffer[:-1]
+                    elif key != 255:
+                        # Only allow printable ASCII characters
+                        if 32 <= key <= 126:
+                            input_buffer += chr(key)
+                else:
+                    if key == ord('q'):
+                        break
+                    elif key == 32: # Space
+                        if current_label == "Waiting...":
+                            # Show warning (we'll handle this in the main loop via a flag or just print for now, 
+                            # but better to just not toggle and maybe flash a warning)
+                            input_mode = True # Force them to enter a label? No, that might be annoying.
+                            # Let's just not toggle and rely on the UI showing "Waiting..."
+                            print("PLEASE SET A LABEL FIRST! Press ENTER.")
+                        else:
+                            is_recording = not is_recording
+                            if is_recording:
+                                frames_recorded = 0
+                    elif key == 13: # Enter
+                        input_mode = True
+                        is_recording = False
+                        input_buffer = "" # Start fresh
 
-        cap.release()
-        cv2.destroyAllWindows()
+        except KeyboardInterrupt:
+            print("\nUser interrupted (Ctrl+C). Exiting...")
+        finally:
+            cap.release()
+            cv2.destroyAllWindows()
+            print(f"Session ended. Data saved to {self.output_file}")
 
 if __name__ == "__main__":
     # Backup old data if it exists and has different columns (simple check)

@@ -5,14 +5,27 @@ import pickle
 import time
 
 class RealTimeDetector:
-    def __init__(self, model_path='models/isl_classifier.p'):
+    def __init__(self):
+        print("Initializing RealTimeDetector...")
+        # Calculate absolute path to model
+        import os
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_dir = os.path.dirname(script_dir)
+        model_path = os.path.join(project_dir, 'models', 'isl_classifier.p')
+        
         try:
+            print(f"Loading model from {model_path}...")
             self.model_dict = pickle.load(open(model_path, 'rb'))
             self.model = self.model_dict['model']
+            print("Model loaded successfully.")
         except FileNotFoundError:
-            print("Model not found. Please train the model first.")
+            print(f"Model not found at {model_path}. Please train the model first.")
+            self.model = None
+        except Exception as e:
+            print(f"Error loading model: {e}")
             self.model = None
         
+        print("Initializing MediaPipe Hands...")
         self.mp_hands = mp.solutions.hands
         self.hands = self.mp_hands.Hands(
             static_image_mode=False,
@@ -21,6 +34,7 @@ class RealTimeDetector:
             min_tracking_confidence=0.5
         )
         self.mp_draw = mp.solutions.drawing_utils
+        print("RealTimeDetector initialized.")
         
     def predict(self, frame):
         h, w, c = frame.shape

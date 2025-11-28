@@ -1,58 +1,240 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>Sign Language Translator</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISL Real-time Translator</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1e1e1e;
-            color: white;
+            background-image: radial-gradient(circle at 50% 50%, #1a1a1a 0%, #000000 100%);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            margin: 0;
+            justify-content: center;
             padding: 20px;
-        }
-
-        h1 {
-            margin-bottom: 20px;
-        }
-
-        .container {
             position: relative;
-            border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
-            border: 2px solid #333;
+            color: #e0e0e0;
         }
 
-        img {
-            display: block;
-            max-width: 100%;
-            height: auto;
-        }
+        /* Subtle animated background noise/texture */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter
+ id='noiseFilter' %3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3'
+                    stitchTiles='stitch' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'
+                    opacity='0.05' /%3E%3C/svg%3E");
+ opacity: 0.4;
+                    pointer-events: none;
+            }
 
-        .footer {
-            margin-top: 20px;
-            color: #888;
-            font-size: 0.9em;
-        }
+            .header {
+                text-align: center;
+                margin-bottom: 40px;
+                z-index: 1;
+                animation: fadeInDown 0.8s ease;
+            }
+
+            @keyframes fadeInDown {
+                from {
+                    opacity: 0;
+                    transform: translateY(-30px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            h1 {
+                font-size: 3rem;
+                font-weight: 700;
+                color: #ffffff;
+                text-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+                letter-spacing: -1px;
+                margin-bottom: 10px;
+            }
+
+            .subtitle {
+                font-size: 1.1rem;
+                color: #888888;
+                font-weight: 300;
+            }
+
+            .main-container {
+                z-index: 1;
+                animation: fadeInUp 1s ease;
+            }
+
+            @keyframes fadeInUp {
+                from {
+                    opacity: 0;
+                    transform: translateY(30px);
+                }
+
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .video-container {
+                position: relative;
+                border-radius: 24px;
+                overflow: hidden;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8),
+                0 0 0 1px rgba(255, 255, 255, 0.05);
+                background: #111111;
+                border: 1px solid #333333;
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+
+            .video-container:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 25px 70px rgba(0, 0, 0, 0.9),
+                0 0 0 1px rgba(255, 255, 255, 0.1);
+                border-color: #444444;
+            }
+
+            .video-feed {
+                display: block;
+                width: 100%;
+                max-width: 800px;
+                height: auto;
+                border-radius: 22px;
+            }
+
+            /* Status indicator removed as requested */
+
+            .info-cards {
+                display: flex;
+                gap: 20px;
+                margin-top: 30px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .info-card {
+                background: rgba(30, 30, 30, 0.6);
+                backdrop-filter: blur(10px);
+                border: 1px solid #333333;
+                border-radius: 16px;
+                padding: 20px 30px;
+                color: #cccccc;
+                text-align: center;
+                min-width: 180px;
+                transition: all 0.3s ease;
+                animation: fadeIn 1.2s ease;
+            }
+
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                }
+
+                to {
+                    opacity: 1;
+                }
+            }
+
+            .info-card:hover {
+                background: rgba(40, 40, 40, 0.8);
+                transform: translateY(-3px);
+                border-color: #555555;
+                color: white;
+            }
+
+            .info-card-icon {
+                font-size: 2rem;
+                margin-bottom: 10px;
+            }
+
+            .info-card-title {
+                font-size: 0.85rem;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                opacity: 0.6;
+                margin-bottom: 5px;
+            }
+
+            .info-card-value {
+                font-size: 1.5rem;
+                font-weight: 600;
+                color: white;
+            }
+
+            .footer {
+                margin-top: 40px;
+                text-align: center;
+                z-index: 1;
+                animation: fadeIn 1.5s ease;
+            }
+
+            .footer p {
+                color: #666666;
+                font-size: 0.95rem;
+                font-weight: 300;
+            }
+
+            .tech-badge {
+                display: inline-block;
+                background: #222222;
+                padding: 6px 14px;
+                border-radius: 20px;
+                margin: 5px;
+                font-size: 0.85rem;
+                border: 1px solid #333333;
+                color: #aaaaaa;
+            }
+
+            .tech-badge:hover {
+                border-color: #555555;
+                color: white;
+            }
+
+            @media (max-width: 768px) {
+                h1 {
+                    font-size: 2rem;
+                }
+
+                .subtitle {
+                    font-size: 1rem;
+                }
+
+                .info-cards {
+                    flex-direction: column;
+                    align-items: center;
+                }
+            }
     </style>
 </head>
 
 <body>
+    <div class="header">
+        <h1>Sign Language Real-time Translator</h1>
+    </div>
 
-    <h1>Sign Language Translator</h1>
-
-    <div class="container">
-        <img src="{{ url_for('video_feed') }}" width="640" height="480" alt="Video Feed">
+    <div class="main-container">
+        <div class="video-container">
+            <img class="video-feed" src="{{ url_for('video_feed') }}" alt="Video Feed">
+        </div>
     </div>
 
     <div class="footer">
-        <p>Powered by Python, Flask & MediaPipe</p>
+        <p>
+            <span class="tech-badge">Python</span>
+            <span class="tech-badge">Flask</span>
+            <span class="tech-badge">MediaPipe</span>
+            <span class="tech-badge">scikit-learn</span>
+        </p>
+        <p style="margin-top: 15px; opacity: 0.4;">Show your signs to start translating ✨</p>
     </div>
-
 </body>
 
 </html>

@@ -6,7 +6,14 @@ from sklearn.metrics import accuracy_score
 import pickle
 import os
 
-def train_model(data_path='data/landmarks_data.csv', model_save_path='models/isl_classifier.p'):
+def train_model():
+    # Calculate absolute paths
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_dir = os.path.dirname(script_dir)
+    data_path = os.path.join(project_dir, 'data', 'landmarks_data.csv')
+    model_save_path = os.path.join(project_dir, 'models', 'isl_classifier.p')
+    
+    print(f"Starting training with data from {data_path}...")
     # Load data
     if not os.path.exists(data_path):
         print(f"Error: Data file {data_path} not found. Please run data_collector.py first.")
