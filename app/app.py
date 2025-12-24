@@ -10,7 +10,7 @@ import av
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.realtime_detector import RealTimeDetector
 
-st.set_page_config(page_title="ISL Translator", page_icon="👋", layout="wide")
+st.set_page_config(page_title="ISL Translator", page_icon="👋", layout="centered")
 
 # Custom CSS
 st.markdown("""
@@ -21,15 +21,16 @@ st.markdown("""
         }
         /* Center title and subtitle */
         h1 { text-align: center; }
-        .prediction-box {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            color: white;
-            font-size: 2rem;
-            font-weight: bold;
-            margin: 10px 0;
+        p { text-align: center; }
+        /* Limit video size */
+        .stVideo, iframe, video {
+            max-width: 480px !important;
+            margin: 0 auto;
+        }
+        /* Center the webrtc container */
+        [data-testid="stVerticalBlock"] > div:has(iframe) {
+            display: flex;
+            justify-content: center;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -89,14 +90,16 @@ except Exception as e:
 # Instructions
 st.info("📹 **Instructions:** Click 'START' below to begin real-time detection. Show sign gestures to your camera!")
 
-# WebRTC Streamer
-ctx = webrtc_streamer(
-    key="sign-language-detector",
-    video_processor_factory=SignLanguageProcessor,
-    rtc_configuration=RTC_CONFIGURATION,
-    media_stream_constraints={"video": True, "audio": False},
-    async_processing=True,
-)
+# WebRTC Streamer - centered in columns
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    ctx = webrtc_streamer(
+        key="sign-language-detector",
+        video_processor_factory=SignLanguageProcessor,
+        rtc_configuration=RTC_CONFIGURATION,
+        media_stream_constraints={"video": {"width": 480, "height": 360}, "audio": False},
+        async_processing=True,
+    )
 
 # Show current detection status
 if ctx.video_processor:
