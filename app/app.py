@@ -39,31 +39,32 @@ except Exception as e:
     st.error(f"Error loading model: {e}")
     st.stop()
 
-# Webcam input
-run = st.checkbox('Start Camera')
-FRAME_WINDOW = st.image([])
+# Camera input - uses browser webcam via Streamlit Cloud
+st.subheader("📸 Capture a Sign")
+img_file = st.camera_input("Show a sign gesture to the camera")
 
-camera = cv2.VideoCapture(0)
-
-while run:
-    ret, frame = camera.read()
-    if not ret:
-        st.write("Failed to capture video")
-        break
+if img_file is not None:
+    # Convert uploaded image to numpy array
+    bytes_data = img_file.getvalue()
+    frame = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
     
     # Flip frame for selfie view
     frame = cv2.flip(frame, 1)
     
     # Run prediction
-    # The detector draws on the frame and returns it
     processed_frame, prediction, confidence = detector.predict(frame)
     
-    # Convert BGR to RGB for Streamlit
+    # Convert BGR to RGB for display
     rgb_frame = cv2.cvtColor(processed_frame, cv2.COLOR_BGR2RGB)
     
-    # Update UI
-    FRAME_WINDOW.image(rgb_frame)
-
+    # Display results
+    st.image(rgb_frame, caption="Processed Image", use_container_width=True)
+    
+    if prediction and confidence > 0.5:
+        st.success(f"### Detected: **{prediction}** ({confidence:.1%} confidence)")
+    elif prediction:
+        st.warning(f"Low confidence: {prediction} ({confidence:.1%})")
+    else:
+        st.info("No hand detected. Please show your hand clearly in the frame.")
 else:
-    camera.release()
-    st.write("Camera stopped.")
+    st.info("👆 Click the camera button above to capture a sign gesture.")
