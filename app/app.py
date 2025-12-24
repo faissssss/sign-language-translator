@@ -10,13 +10,27 @@ from src.realtime_detector import RealTimeDetector
 
 st.set_page_config(page_title="ISL Translator", page_icon="👋")
 
+# Hide the chat input and center title
+st.markdown("""
+    <style>
+        /* Hide chat input */
+        .stChatInput, .stChatFloatingInputContainer {
+            display: none !important;
+        }
+        /* Center title and subtitle */
+        h1, .stMarkdown p {
+            text-align: center;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("👋 ISL Translator")
 st.write("Translate Indonesian Sign Language gestures into text in real-time.")
 
 # Cache the detector so it doesn't reload on every frame
 @st.cache_resource
 def load_detector():
-    return RealTimeDetector(model_path='models/isl_classifier.p')
+    return RealTimeDetector()
 
 try:
     detector = load_detector()
@@ -28,7 +42,6 @@ except Exception as e:
 # Webcam input
 run = st.checkbox('Start Camera')
 FRAME_WINDOW = st.image([])
-TEXT_WINDOW = st.empty()
 
 camera = cv2.VideoCapture(0)
 
@@ -50,22 +63,6 @@ while run:
     
     # Update UI
     FRAME_WINDOW.image(rgb_frame)
-    
-    # Display text with styling
-    if prediction != "Waiting...":
-        color = "green" if confidence > 0.7 else "orange"
-        TEXT_WINDOW.markdown(f"""
-            <div style="text-align: center; padding: 20px; background-color: #f0f2f6; border-radius: 10px;">
-                <h2 style="color: {color}; margin:0;">{prediction}</h2>
-                <p style="margin:0;">Confidence: {confidence:.2f}</p>
-            </div>
-            """, unsafe_allow_html=True)
-    else:
-        TEXT_WINDOW.markdown("""
-            <div style="text-align: center; padding: 20px; background-color: #f0f2f6; border-radius: 10px;">
-                <h2 style="color: gray; margin:0;">Waiting...</h2>
-            </div>
-            """, unsafe_allow_html=True)
 
 else:
     camera.release()
